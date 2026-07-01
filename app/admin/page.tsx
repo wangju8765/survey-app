@@ -26,7 +26,10 @@ interface SurveyStatus {
 
 export default function AdminPage() {
   const [password, setPassword] = useState('')
-  const [authed, setAuthed] = useState(false)
+  const [authed, setAuthed] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('admin_authed') === 'true'
+    return false
+  })
   const [pwError, setPwError] = useState('')
 
   // 新建
@@ -49,6 +52,7 @@ export default function AdminPage() {
     e.preventDefault()
     if (password === ADMIN_PASSWORD) {
       setAuthed(true)
+      sessionStorage.setItem('admin_authed', 'true')
       setPwError('')
     } else {
       setPwError('密码错误')
@@ -160,7 +164,7 @@ export default function AdminPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">教练管理后台</h1>
-        <button onClick={() => setAuthed(false)} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => { setAuthed(false); sessionStorage.removeItem('admin_authed') }} className="text-sm text-gray-500 hover:text-gray-700">
           退出
         </button>
       </div>
