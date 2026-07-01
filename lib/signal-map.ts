@@ -39,6 +39,13 @@ export interface Contradiction {
   suggestedQuestion: string
 }
 
+export interface QualitativeEntry {
+  source: 'student' | 'parent' | 'teacher'
+  qid: string
+  questionText: string
+  answerText: string
+}
+
 export interface SignalReport {
   studentName: string
   studentCode: string
@@ -48,6 +55,8 @@ export interface SignalReport {
   dimensions: DimensionSignal[]
   contradictions: Contradiction[]
   firstInterviewFocus: string[]
+  allEvidence: EvidenceItem[]
+  qualitativeData: QualitativeEntry[]
 }
 
 // ============================================================
@@ -440,6 +449,50 @@ export function generateSignalReport(
     }
   }
 
+  // 提取质性数据（开放题）
+  const qualitativeData: QualitativeEntry[] = []
+  if (studentData) {
+    for (const qid of ['q18', 'q19']) {
+      const val = studentData[qid]
+      if (val && typeof val === 'string' && val.trim()) {
+        qualitativeData.push({
+          source: 'student',
+          qid,
+          questionText: studentLabels[qid] || qid,
+          answerText: val.trim(),
+        })
+      }
+    }
+  }
+  if (parentData) {
+    for (const qid of ['q13', 'q14']) {
+      const val = parentData[qid]
+      if (val && typeof val === 'string' && val.trim()) {
+        qualitativeData.push({
+          source: 'parent',
+          qid,
+          questionText: parentLabels[qid] || qid,
+          answerText: val.trim(),
+        })
+      }
+    }
+  }
+  if (teacherData) {
+    for (const qid of ['q6', 'q7']) {
+      const val = teacherData[qid]
+      if (val && typeof val === 'string' && val.trim()) {
+        qualitativeData.push({
+          source: 'teacher',
+          qid,
+          questionText: teacherLabels[qid] || qid,
+          answerText: val.trim(),
+        })
+      }
+    }
+  }
+
+  const allEvidence = [...studentEvidence, ...parentEvidence, ...teacherEvidence]
+
   return {
     studentName: name,
     studentCode: code,
@@ -449,5 +502,7 @@ export function generateSignalReport(
     dimensions,
     contradictions,
     firstInterviewFocus: focusList.slice(0, 5),
+    allEvidence,
+    qualitativeData,
   }
 }

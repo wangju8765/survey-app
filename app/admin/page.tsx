@@ -238,6 +238,7 @@ export default function AdminPage() {
                   <th className="py-2 pr-2">教师</th>
                   <th className="py-2 pr-2">数据</th>
                   <th className="py-2 pr-2">报告</th>
+                  <th className="py-2 pr-2">家长版</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,6 +260,11 @@ export default function AdminPage() {
                       <td className="py-2 pr-2">
                         <Link href={`/admin/report/?code=${s.code}`} className="text-indigo-600 hover:text-indigo-800 text-xs">
                           报告
+                        </Link>
+                      </td>
+                      <td className="py-2 pr-2">
+                        <Link href={`/admin/report/parent/?code=${s.code}`} className="text-emerald-600 hover:text-emerald-800 text-xs">
+                          家长版
                         </Link>
                       </td>
                     </tr>
