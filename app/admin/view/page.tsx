@@ -104,8 +104,8 @@ function ViewContent() {
     lines.push('')
     lines.push(`> 编号：${code}  ')
     if (studentInfo) {
-      const meta = [studentInfo.age, studentInfo.grade, studentInfo.gender].filter(Boolean).map(String).join(' · ')
-      if (meta) lines.push(`> ${meta}`)
+      const meta = [studentInfo.age, studentInfo.grade, studentInfo.gender].filter(Boolean).map(String).join(' · ');
+      if (meta) lines.push(`> ${meta}`);
     }
     lines.push(`> 导出时间：${now}`)
     lines.push('')
