@@ -15,58 +15,7 @@ function TeacherForm() {
     if (error) throw error
   }
 
-  const extraFields = (
-    <div className="space-y-3">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          学生姓名 *
-        </label>
-        <input
-          type="text"
-          name="student_name"
-          data-extra="true"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          填答教师 *
-        </label>
-        <input
-          type="text"
-          name="teacher_name"
-          data-extra="true"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          任教学科 *
-        </label>
-        <input
-          type="text"
-          name="subject"
-          data-extra="true"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          认识该生时长（约 ____ 个月）
-        </label>
-        <input
-          type="text"
-          name="known_duration"
-          data-extra="true"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="例如 12"
-        />
-      </div>
-    </div>
-  )
+  const extraFields = null
 
   return (
     <div>
