@@ -140,20 +140,20 @@ function ViewContent() {
         lines.push('')
         continue
       }
-      lines.push(`填写时间：${survey.data.created_at ? new Date(survey.data.created_at as string).toLocaleString('zh-CN') : '未知'}`)
+      const sdata = survey.data as Record<string, unknown>
+      lines.push(`填写时间：${sdata.created_at ? new Date(sdata.created_at as string).toLocaleString('zh-CN') : '未知'}`)
       lines.push('')
 
       if (survey.extra) {
-        for (const line of survey.extra(survey.data)) {
+        for (const line of survey.extra(sdata)) {
           lines.push(`- ${line}`)
         }
         lines.push('')
       }
-
-      const qids = Object.keys(survey.labels).filter(k => k !== 'parent_role' && k in survey.data)
+      const qids = Object.keys(survey.labels).filter(k => k !== 'parent_role' && k in sdata)
       for (const qid of qids) {
         const label = survey.labels[qid] || qid
-        const value = survey.data[qid]
+        const value = sdata[qid]
         if (value === null || value === undefined || value === '') {
           lines.push(`- **${label}**：（未填）`)
         } else {
