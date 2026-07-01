@@ -102,7 +102,7 @@ function ViewContent() {
 
     lines.push(`# ${studentName} · 问卷数据导出`)
     lines.push('')
-    lines.push(`> 编号：${code}  ')
+    lines.push(`> 编号：${code}`)
     if (studentInfo) {
       const meta = [studentInfo.age, studentInfo.grade, studentInfo.gender].filter(Boolean).map(String).join(' · ');
       if (meta) lines.push(`> ${meta}`);
