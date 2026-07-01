@@ -37,7 +37,7 @@ ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_select_students" ON students FOR SELECT USING (true);
 CREATE POLICY "allow_insert_students" ON students FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_delete_students" ON students FOR DELETE USING (false);
+CREATE POLICY "allow_delete_students" ON students FOR DELETE USING (true);
 CREATE POLICY "allow_update_students" ON students FOR UPDATE USING (false);
 
 -- ============================================================
@@ -89,6 +89,7 @@ ALTER TABLE student_responses ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_insert_student_responses" ON student_responses FOR INSERT WITH CHECK (true);
 CREATE POLICY "allow_select_student_responses" ON student_responses FOR SELECT USING (true);
+CREATE POLICY "allow_delete_student_responses" ON student_responses FOR DELETE USING (true);
 
 -- ============================================================
 -- 3. 家长问卷回答（14 题：q1-q12 选择 + q13-q14 开放）
@@ -121,6 +122,7 @@ ALTER TABLE parent_responses ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_insert_parent_responses" ON parent_responses FOR INSERT WITH CHECK (true);
 CREATE POLICY "allow_select_parent_responses" ON parent_responses FOR SELECT USING (true);
+CREATE POLICY "allow_delete_parent_responses" ON parent_responses FOR DELETE USING (true);
 
 -- ============================================================
 -- 4. 教师问卷回答（7 题：q1-q5 选择 + q6-q7 开放）
@@ -149,3 +151,4 @@ ALTER TABLE teacher_responses ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_insert_teacher_responses" ON teacher_responses FOR INSERT WITH CHECK (true);
 CREATE POLICY "allow_select_teacher_responses" ON teacher_responses FOR SELECT USING (true);
+CREATE POLICY "allow_delete_teacher_responses" ON teacher_responses FOR DELETE USING (true);

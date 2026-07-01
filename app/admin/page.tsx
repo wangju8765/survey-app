@@ -47,6 +47,7 @@ export default function AdminPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [statuses, setStatuses] = useState<Record<string, SurveyStatus>>({})
   const [loading, setLoading] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,6 +132,30 @@ export default function AdminPage() {
 📌 三份可不同时间填写，使用同一编号即可
 
 ——小王老师教练课`
+
+  const handleDelete = async (studentId: string, studentName: string, studentCode: string) => {
+    if (!window.confirm(`确定要删除「${studentName}」（编号：${studentCode}）吗？\n\n这将同时删除该学生的所有问卷回答数据（学生卷、家长卷、教师卷），且不可恢复。`)) {
+      return
+    }
+    setDeletingId(studentId)
+    try {
+      // 删除关联的问卷回答
+      await Promise.all([
+        supabase.from('student_responses').delete().eq('student_code', studentCode),
+        supabase.from('parent_responses').delete().eq('student_code', studentCode),
+        supabase.from('teacher_responses').delete().eq('student_code', studentCode),
+      ])
+      // 删除学生记录
+      const { error } = await supabase.from('students').delete().eq('id', studentId)
+      if (error) throw error
+      loadStudents()
+    } catch (err) {
+      alert('删除失败：' + (err instanceof Error ? err.message : '未知错误'))
+      console.error(err)
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(forwardTemplate)
@@ -243,6 +268,7 @@ export default function AdminPage() {
                   <th className="py-2 pr-2">数据</th>
                   <th className="py-2 pr-2">报告</th>
                   <th className="py-2 pr-2">家长版</th>
+                  <th className="py-2">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,6 +296,15 @@ export default function AdminPage() {
                         <Link href={`/admin/report/parent/?code=${s.code}`} className="text-emerald-600 hover:text-emerald-800 text-xs">
                           家长版
                         </Link>
+                      </td>
+                      <td className="py-2">
+                        <button
+                          onClick={() => handleDelete(s.id, s.name, s.code)}
+                          disabled={deletingId === s.id}
+                          className="text-red-500 hover:text-red-700 text-xs disabled:opacity-30"
+                        >
+                          {deletingId === s.id ? '删除中...' : '删除'}
+                        </button>
                       </td>
                     </tr>
                   )
