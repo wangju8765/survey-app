@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import type { SurveyConfig } from '@/lib/questions'
 
+const OTHER_MARKER = '__other__'
+
 interface Props {
   config: SurveyConfig
   extraFields?: React.ReactNode
@@ -13,12 +15,21 @@ interface Props {
 
 export default function SurveyForm({ config, extraFields, prefilledCode, onSubmit }: Props) {
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
+  const [otherTexts, setOtherTexts] = useState<Record<string, string>>({})
   const [studentCode, setStudentCode] = useState(prefilledCode || '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   const handleRadio = (qid: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }))
+    // Clear other text if switching away from "其他"
+    if (value !== OTHER_MARKER) {
+      setOtherTexts((prev) => {
+        const next = { ...prev }
+        delete next[qid]
+        return next
+      })
+    }
   }
 
   const handleCheckbox = (qid: string, value: string) => {
@@ -31,8 +42,17 @@ export default function SurveyForm({ config, extraFields, prefilledCode, onSubmi
     })
   }
 
+  const handleOtherText = (qid: string, text: string) => {
+    setOtherTexts((prev) => ({ ...prev, [qid]: text }))
+  }
+
   const handleTextarea = (qid: string, value: string) => {
     setAnswers((prev) => ({ ...prev, [qid]: value }))
+  }
+
+  const isOtherSelected = (qid: string, type: string): boolean => {
+    if (type === 'radio') return answers[qid] === OTHER_MARKER
+    return ((answers[qid] as string[]) || []).includes(OTHER_MARKER)
   }
 
   const validate = (): boolean => {
@@ -40,18 +60,27 @@ export default function SurveyForm({ config, extraFields, prefilledCode, onSubmi
       setError('请输入教练给你的编号')
       return false
     }
-    // Validate pattern: letters and numbers only
     if (!/^[a-zA-Z0-9]+$/.test(studentCode.trim())) {
       setError('编号只能包含字母和数字，不含其他符号')
       return false
     }
     for (const part of config.parts) {
       for (const q of part.questions) {
-        if (q.required && !answers[q.id]) {
+        if (!q.required) continue
+        const val = answers[q.id]
+
+        // "其他"选了但没填文字
+        if (q.hasOther && isOtherSelected(q.id, q.type) && !otherTexts[q.id]?.trim()) {
+          const label = q.text.split('.')[0]
+          setError(`请在"${label}"的"其他"选项中输入具体内容`)
+          return false
+        }
+
+        if (!val) {
           setError(`请完成第 ${q.text.split('.')[0]} 题`)
           return false
         }
-        if (q.required && Array.isArray(answers[q.id]) && (answers[q.id] as string[]).length === 0) {
+        if (Array.isArray(val) && val.length === 0) {
           setError(`请至少选择一个选项：第 ${q.text.split('.')[0]} 题`)
           return false
         }
@@ -73,23 +102,37 @@ export default function SurveyForm({ config, extraFields, prefilledCode, onSubmi
         student_code: studentCode.trim().toUpperCase(),
       }
 
-      // Merge survey answers
+      // Merge survey answers, replacing __other__ with actual text
       for (const [key, value] of Object.entries(answers)) {
-        data[key] = value
+        if (Array.isArray(value)) {
+          data[key] = value.map((v) => (v === OTHER_MARKER ? (otherTexts[key] || '') : v))
+        } else if (value === OTHER_MARKER) {
+          data[key] = otherTexts[key] || ''
+        } else {
+          data[key] = value
+        }
       }
 
-      // Merge extra fields from the form
+      // Merge extra fields
       const form = e.target as HTMLFormElement
-      const formData = new FormData(form)
-
-      // Get extra field values
       const extraInputs = form.querySelectorAll<HTMLInputElement>('[data-extra]')
+      const seen = new Set<string>()
       extraInputs.forEach((input) => {
-        data[input.name] = input.value
+        if (seen.has(input.name)) return
+        if (input.type === 'radio') {
+          if (input.checked) {
+            data[input.name] = input.value
+            seen.add(input.name)
+          }
+        } else {
+          data[input.name] = input.value
+          seen.add(input.name)
+        }
       })
 
       await onSubmit(data)
-      window.location.href = `${window.location.origin}/done/`
+      const base = window.location.pathname.startsWith('/survey-app') ? '/survey-app' : ''
+      window.location.href = `${base}/done/`
     } catch (err) {
       setError('提交失败，请检查网络后重试')
       console.error(err)
@@ -173,6 +216,37 @@ export default function SurveyForm({ config, extraFields, prefilledCode, onSubmi
                         <span className="text-sm text-gray-700">{opt.label}</span>
                       </label>
                     ))}
+                    {/* "其他" 选项 */}
+                    {q.hasOther && (
+                      <div>
+                        <label
+                          className={`flex items-start gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                            isOtherSelected(q.id, 'radio')
+                              ? 'bg-indigo-50 border border-indigo-200'
+                              : 'hover:bg-gray-50 border border-transparent'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            value={OTHER_MARKER}
+                            checked={isOtherSelected(q.id, 'radio')}
+                            onChange={() => handleRadio(q.id, OTHER_MARKER)}
+                            className="mt-0.5 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm text-gray-700">其他</span>
+                        </label>
+                        {isOtherSelected(q.id, 'radio') && (
+                          <input
+                            type="text"
+                            value={otherTexts[q.id] || ''}
+                            onChange={(e) => handleOtherText(q.id, e.target.value)}
+                            placeholder="请注明"
+                            className="ml-8 mt-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full max-w-xs"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -197,6 +271,36 @@ export default function SurveyForm({ config, extraFields, prefilledCode, onSubmi
                         <span className="text-sm text-gray-700">{opt.label}</span>
                       </label>
                     ))}
+                    {/* "其他" 选项 */}
+                    {q.hasOther && (
+                      <div>
+                        <label
+                          className={`flex items-start gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                            isOtherSelected(q.id, 'checkbox')
+                              ? 'bg-indigo-50 border border-indigo-200'
+                              : 'hover:bg-gray-50 border border-transparent'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            value={OTHER_MARKER}
+                            checked={isOtherSelected(q.id, 'checkbox')}
+                            onChange={() => handleCheckbox(q.id, OTHER_MARKER)}
+                            className="mt-0.5 rounded text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm text-gray-700">其他</span>
+                        </label>
+                        {isOtherSelected(q.id, 'checkbox') && (
+                          <input
+                            type="text"
+                            value={otherTexts[q.id] || ''}
+                            onChange={(e) => handleOtherText(q.id, e.target.value)}
+                            placeholder="请注明"
+                            className="ml-8 mt-1 px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-full max-w-xs"
+                          />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

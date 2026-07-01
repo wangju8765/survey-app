@@ -15,6 +15,36 @@ function ParentForm() {
     if (error) throw error
   }
 
+  const extraFields = (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        您是孩子的 *
+      </label>
+      <div className="space-y-2">
+        {[
+          { value: '父亲', label: '父亲' },
+          { value: '母亲', label: '母亲' },
+          { value: '其他', label: '其他' },
+        ].map((opt) => (
+          <label
+            key={opt.value}
+            className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-gray-50"
+          >
+            <input
+              type="radio"
+              name="parent_role"
+              data-extra="true"
+              value={opt.value}
+              className="text-indigo-600 focus:ring-indigo-500"
+              required
+            />
+            <span className="text-sm text-gray-700">{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <div>
       <div className="text-center mb-6">
@@ -25,6 +55,7 @@ function ParentForm() {
         config={parentSurvey}
         tableName="parent_responses"
         prefilledCode={code}
+        extraFields={extraFields}
         onSubmit={handleSubmit}
       />
     </div>
