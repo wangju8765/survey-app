@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -20,12 +21,59 @@ const ROLES = [
   { key: 'teacher' as const, label: '教师问卷', icon: '🏫', time: '5-8 分钟', count: '7题' },
 ]
 
-export default function Home() {
+function HomeContent() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const urlCode = searchParams.get('code') || ''
+
   const [codeInput, setCodeInput] = useState('')
   const [student, setStudent] = useState<StudentInfo | null>(null)
   const [status, setStatus] = useState<SurveyStatus>({ student: false, parent: false, teacher: false })
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
+  const [initDone, setInitDone] = useState(false)
+
+  // URL 带 code 参数时，验证并恢复问卷列表（支持返回按钮）
+  useEffect(() => {
+    if (!urlCode) { setInitDone(true); return }
+
+    let cancelled = false
+    ;(async () => {
+      setChecking(true)
+      const { data: info } = await supabase
+        .from('students')
+        .select('name, code, age, grade, gender')
+        .eq('code', urlCode)
+        .maybeSingle()
+
+      if (cancelled) return
+      if (!info) {
+        // 无效编号，清除 URL 参数
+        router.replace('/')
+        setInitDone(true)
+        setChecking(false)
+        return
+      }
+
+      setStudent(info)
+      const [sr, pr, tr] = await Promise.all([
+        supabase.from('student_responses').select('id').eq('student_code', info.code).limit(1),
+        supabase.from('parent_responses').select('id').eq('student_code', info.code).limit(1),
+        supabase.from('teacher_responses').select('id').eq('student_code', info.code).limit(1),
+      ])
+      if (!cancelled) {
+        setStatus({
+          student: (sr.data?.length || 0) > 0,
+          parent: (pr.data?.length || 0) > 0,
+          teacher: (tr.data?.length || 0) > 0,
+        })
+      }
+      setChecking(false)
+      setInitDone(true)
+    })()
+
+    return () => { cancelled = true }
+  }, [urlCode, router])
 
   const handleVerify = async () => {
     const trimmed = codeInput.trim().toUpperCase()
@@ -43,25 +91,22 @@ export default function Home() {
     if (queryError) {
       setError('验证失败，请检查网络后重试')
     } else if (data) {
-      sessionStorage.setItem('survey_code', data.code)
-      sessionStorage.setItem('student_name', data.name)
-      setStudent(data)
-
-      // 查填答状态
-      const [sr, pr, tr] = await Promise.all([
-        supabase.from('student_responses').select('id').eq('student_code', data.code).limit(1),
-        supabase.from('parent_responses').select('id').eq('student_code', data.code).limit(1),
-        supabase.from('teacher_responses').select('id').eq('student_code', data.code).limit(1),
-      ])
-      setStatus({
-        student: (sr.data?.length || 0) > 0,
-        parent: (pr.data?.length || 0) > 0,
-        teacher: (tr.data?.length || 0) > 0,
-      })
+      // 更新 URL 以记住验证状态（支持返回按钮）
+      router.replace(`/?code=${data.code}`)
+      // student state 会由 useEffect 自动设置
     } else {
       setError('编号无效，请确认教练给你的编号是否正确')
     }
     setChecking(false)
+  }
+
+  // 等待 URL 参数初始化完成
+  if (!initDone) {
+    return (
+      <div className="max-w-md mx-auto pt-12 text-center text-gray-400">
+        加载中...
+      </div>
+    )
   }
 
   if (student) {
@@ -117,6 +162,19 @@ export default function Home() {
             ? '三份问卷已全部完成，感谢配合！'
             : '三份问卷可不同时间填写，使用同一编号即可'}
         </div>
+
+        <div className="text-center">
+          <button
+            onClick={() => {
+              router.replace('/')
+              setStudent(null)
+              setStatus({ student: false, parent: false, teacher: false })
+            }}
+            className="text-xs text-gray-400 hover:text-gray-600 underline transition-colors"
+          >
+            不是 {student.name}？点此切换编号
+          </button>
+        </div>
       </div>
     )
   }
@@ -153,5 +211,13 @@ export default function Home() {
         </button>
       </div>
     </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="max-w-md mx-auto pt-12 text-center text-gray-400">加载中...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }
